@@ -9,8 +9,19 @@ export default function AddSubscription() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("New Subscription Added:", formData); // Replace this with backend call later
-    // After adding, redirect to dashboard
+    const newSubscription = {
+      id: Math.random(),
+      ...formData,
+      price: parseFloat(formData.price),
+    };
+
+    // Save the subscription in the local storage
+    const existingSubscriptions =
+      JSON.parse(localStorage.getItem("subscriptions")) || [];
+    const updatedSubscriptions = [...existingSubscriptions, newSubscription];
+    localStorage.setItem("subscriptions", JSON.stringify(updatedSubscriptions));
+
+    // Navigate back to the dashboard
     router.push("/dashboard");
   };
 
@@ -38,7 +49,7 @@ export default function AddSubscription() {
               step="0.01"
               value={formData.price}
               onChange={(e) =>
-                setFormData({ ...formData, price: parseFloat(e.target.value) })
+                setFormData({ ...formData, price: e.target.value })
               }
               className="w-full px-3 py-2 border rounded"
               required
