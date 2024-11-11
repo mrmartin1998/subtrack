@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import { useState, useEffect } from "react";
 import SubscriptionCard from "./components/SubscriptionCard";
@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
   const [subscriptions, setSubscriptions] = useState([]);
+  const [editingSubscription, setEditingSubscription] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -16,14 +17,21 @@ export default function Dashboard() {
   }, []);
 
   const handleDelete = (id) => {
-    const updatedSubscriptions = subscriptions.filter((sub) => sub.id !== id);
+    const updatedSubscriptions = subscriptions.filter(
+      (sub) => sub.id !== id
+    );
     setSubscriptions(updatedSubscriptions);
     localStorage.setItem("subscriptions", JSON.stringify(updatedSubscriptions));
   };
 
+  const handleEdit = (subscription) => {
+    router.push(`/add-subscription?edit=true&id=${subscription.id}`);
+  };
+  
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
       <QuickStats subscriptions={subscriptions} />
       <button
         onClick={() => router.push("/add-subscription")}
@@ -37,6 +45,7 @@ export default function Dashboard() {
             key={sub.id}
             subscription={sub}
             onDelete={handleDelete}
+            onEdit={handleEdit}
           />
         ))}
       </div>

@@ -1,34 +1,61 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export default function AddSubscription() {
   const [formData, setFormData] = useState({ name: "", price: "", dueDate: "" });
+  const searchParams = useSearchParams();
   const router = useRouter();
+
+  const isEditing = searchParams.get("edit") === "true";
+  const editingId = parseFloat(searchParams.get("id"));
+
+  useEffect(() => {
+    if (isEditing) {
+      const subscriptions =
+        JSON.parse(localStorage.getItem("subscriptions")) || [];
+      const editingSubscription = subscriptions.find(
+        (sub) => sub.id === editingId
+      );
+      if (editingSubscription) {
+        setFormData(editingSubscription);
+      }
+    }
+  }, [isEditing, editingId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const newSubscription = {
-      id: Math.random(),
-      ...formData,
-      price: parseFloat(formData.price),
-    };
 
-    // Save the subscription in the local storage
-    const existingSubscriptions =
+    const subscriptions =
       JSON.parse(localStorage.getItem("subscriptions")) || [];
-    const updatedSubscriptions = [...existingSubscriptions, newSubscription];
-    localStorage.setItem("subscriptions", JSON.stringify(updatedSubscriptions));
+    let updatedSubscriptions;
 
-    // Navigate back to the dashboard
+    if (isEditing) {
+      // Replace the subscription with the edited one
+      updatedSubscriptions = subscriptions.map((sub) =>
+        sub.id === editingId ? { ...sub, ...formData } : sub
+      );
+    } else {
+      // Add a new subscription
+      const newSubscription = {
+        id: Math.random(),
+        ...formData,
+        price: parseFloat(formData.price),
+      };
+      updatedSubscriptions = [...subscriptions, newSubscription];
+    }
+
+    localStorage.setItem("subscriptions", JSON.stringify(updatedSubscriptions));
     router.push("/dashboard");
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 className="text-2xl font-bold mb-4">Add Subscription</h2>
+        <h2 className="text-2xl font-bold mb-4">
+          {isEditing ? "Edit Subscription" : "Add Subscription"}
+        </h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700">Name</label>
@@ -49,7 +76,7 @@ export default function AddSubscription() {
               step="0.01"
               value={formData.price}
               onChange={(e) =>
-                setFormData({ ...formData, price: e.target.value })
+                setFormData({ ...formData, price: parseFloat(e.target.value) })
               }
               className="w-full px-3 py-2 border rounded"
               required
@@ -71,7 +98,7 @@ export default function AddSubscription() {
             type="submit"
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
           >
-            Add Subscription
+            {isEditing ? "Update Subscription" : "Add Subscription"}
           </button>
         </form>
       </div>
