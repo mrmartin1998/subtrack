@@ -1,0 +1,22 @@
+1. Editing Subscriptions
+Ensure the subscription data is fetched and pre-filled correctly when editing.
+Save the updates to the backend and reflect them in the dashboard.
+
+2. Enhance the Dashboard
+Add a loading spinner for a better user experience during data fetch.
+Improve the UI to display empty states (e.g., "No subscriptions yet").
+
+3. Profile Page
+Allow users to view and update their profile (e.g., name, email, password).
+
+4. Notifications
+Implement notifications for upcoming subscription due dates.
+Consider using setTimeout or backend-scheduled tasks for reminders.
+
+5. Authentication Improvements
+Add logout functionality to the app.
+Auto-refresh the token when it expires or prompt the user to re-login.
+
+6. Deployment
+Prepare the app for deployment (e.g., to Vercel).
+Set up MongoDB Atlas for production.

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 export default function Dashboard() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true); // Add a loading state
+  const [error, setError] = useState(null); // Add error state
   const router = useRouter();
 
   useEffect(() => {
@@ -30,14 +31,18 @@ export default function Dashboard() {
         if (res.ok) {
           const data = await res.json();
           setSubscriptions(data.data); // Set fetched subscriptions
-          setLoading(false);
+          setError(null); // Clear any previous errors
         } else if (res.status === 401) {
           // Handle unauthorized access
           router.push("/auth/login");
+        } else {
+          setError("Failed to load subscriptions");
         }
       } catch (error) {
         console.error("Failed to fetch subscriptions:", error);
-        setLoading(false);
+        setError("An error occurred while fetching subscriptions");
+      } finally {
+        setLoading(false); // Stop loading
       }
     };
 
@@ -57,20 +62,36 @@ export default function Dashboard() {
 
       if (res.ok) {
         setSubscriptions((prev) => prev.filter((sub) => sub._id !== id)); // Filter out deleted subscription
+        setError(null); // Clear any error messages
       } else {
-        console.error("Failed to delete subscription");
+        setError("Failed to delete subscription");
       }
     } catch (error) {
       console.error("Error deleting subscription:", error);
+      setError("An error occurred while deleting the subscription");
     }
   };
 
   const handleEdit = (subscription) => {
-    router.push(`/add-subscription?id=${subscription._id}`); // Redirect to the edit page
+    router.push(`/add-subscription?edit=true&id=${subscription._id}`); // Redirect to the edit page
   };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <p className="text-red-500 mb-4">{error}</p>
+        <button
+          onClick={() => router.reload()}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Reload
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -83,16 +104,20 @@ export default function Dashboard() {
       >
         Add Subscription
       </button>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-        {subscriptions.map((sub) => (
-          <SubscriptionCard
-            key={sub._id}
-            subscription={sub}
-            onDelete={handleDelete}
-            onEdit={handleEdit}
-          />
-        ))}
-      </div>
+      {subscriptions.length === 0 ? (
+        <p className="text-gray-700 mt-4">No subscriptions available. Add a new subscription to get started!</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          {subscriptions.map((sub) => (
+            <SubscriptionCard
+              key={sub._id}
+              subscription={sub}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

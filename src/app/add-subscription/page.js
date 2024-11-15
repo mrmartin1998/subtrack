@@ -7,6 +7,7 @@ export default function AddSubscription() {
   const [formData, setFormData] = useState({ name: "", price: "", dueDate: "" });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [loading, setLoading] = useState(false); // Add a loading state
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -18,6 +19,7 @@ export default function AddSubscription() {
       // Fetch the subscription data for editing
       const fetchSubscription = async () => {
         const token = localStorage.getItem("token");
+        setLoading(true); // Start loading
         try {
           const res = await fetch(`/api/subscriptions/${editingId}`, {
             headers: {
@@ -27,12 +29,15 @@ export default function AddSubscription() {
           if (res.ok) {
             const { data } = await res.json();
             setFormData(data);
+            setError(null); // Clear any previous errors
           } else {
             setError("Failed to load subscription for editing");
           }
         } catch (err) {
           console.error(err);
           setError("An error occurred while loading subscription data");
+        } finally {
+          setLoading(false); // Stop loading
         }
       };
       fetchSubscription();
@@ -41,10 +46,17 @@ export default function AddSubscription() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null); // Clear any existing errors
+    setSuccess(null); // Clear any existing success messages
 
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/auth/login");
+      return;
+    }
+
+    if (!formData.name || !formData.price || !formData.dueDate) {
+      setError("All fields are required");
       return;
     }
 
@@ -63,19 +75,20 @@ export default function AddSubscription() {
 
       if (res.ok) {
         setSuccess(isEditing ? "Subscription updated successfully!" : "Subscription added successfully!");
-        setError(null);
         router.push("/dashboard");
       } else {
         const { message } = await res.json();
         setError(message || "Failed to save subscription");
-        setSuccess(null);
       }
     } catch (err) {
       console.error(err);
       setError("An error occurred while saving the subscription");
-      setSuccess(null);
     }
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
