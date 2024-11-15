@@ -7,8 +7,8 @@ import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
   const [subscriptions, setSubscriptions] = useState([]);
-  const [loading, setLoading] = useState(true); // Add a loading state
-  const [error, setError] = useState(null); // Add error state
+  const [loading, setLoading] = useState(true); // Loading state
+  const [error, setError] = useState(null); // Error state
   const router = useRouter();
 
   useEffect(() => {
@@ -16,7 +16,6 @@ export default function Dashboard() {
       const token = localStorage.getItem("token"); // Retrieve the token
 
       if (!token) {
-        // Redirect to login if token doesn't exist
         router.push("/auth/login");
         return;
       }
@@ -30,16 +29,16 @@ export default function Dashboard() {
 
         if (res.ok) {
           const data = await res.json();
-          setSubscriptions(data.data); // Set fetched subscriptions
-          setError(null); // Clear any previous errors
-        } else if (res.status === 401) {
-          // Handle unauthorized access
+          setSubscriptions(data.data);
+          setError(null);
+        } else if (res.status === 403 || res.status === 401) {
+          setError("Unauthorized access. Please log in again.");
+          localStorage.removeItem("token"); // Remove invalid token
           router.push("/auth/login");
         } else {
           setError("Failed to load subscriptions");
         }
       } catch (error) {
-        console.error("Failed to fetch subscriptions:", error);
         setError("An error occurred while fetching subscriptions");
       } finally {
         setLoading(false); // Stop loading
@@ -61,23 +60,35 @@ export default function Dashboard() {
       });
 
       if (res.ok) {
-        setSubscriptions((prev) => prev.filter((sub) => sub._id !== id)); // Filter out deleted subscription
-        setError(null); // Clear any error messages
+        setSubscriptions((prev) => prev.filter((sub) => sub._id !== id));
+        setError(null);
       } else {
         setError("Failed to delete subscription");
       }
     } catch (error) {
-      console.error("Error deleting subscription:", error);
       setError("An error occurred while deleting the subscription");
     }
   };
 
   const handleEdit = (subscription) => {
-    router.push(`/add-subscription?edit=true&id=${subscription._id}`); // Redirect to the edit page
+    router.push(`/add-subscription?edit=true&id=${subscription._id}`);
+  };
+
+  const reloadPage = () => {
+    setLoading(true); // Show loader during reload
+    setSubscriptions([]); // Reset subscriptions
+    setError(null); // Clear errors
+    setTimeout(() => {
+      router.replace(router.asPath); // Force a page reload by re-rendering
+    }, 500);
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="loader"></div> {/* Replace with spinner */}
+      </div>
+    );
   }
 
   if (error) {
@@ -85,7 +96,7 @@ export default function Dashboard() {
       <div className="min-h-screen flex flex-col items-center justify-center">
         <p className="text-red-500 mb-4">{error}</p>
         <button
-          onClick={() => router.reload()}
+          onClick={reloadPage}
           className="bg-blue-500 text-white px-4 py-2 rounded"
         >
           Reload
@@ -105,7 +116,15 @@ export default function Dashboard() {
         Add Subscription
       </button>
       {subscriptions.length === 0 ? (
-        <p className="text-gray-700 mt-4">No subscriptions available. Add a new subscription to get started!</p>
+        <div className="flex flex-col items-center mt-6">
+          <p className="text-gray-700 text-lg">No subscriptions available yet!</p>
+          <button
+            onClick={() => router.push("/add-subscription")}
+            className="bg-blue-500 text-white px-4 py-2 rounded mt-4"
+          >
+            Add Your First Subscription
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           {subscriptions.map((sub) => (
