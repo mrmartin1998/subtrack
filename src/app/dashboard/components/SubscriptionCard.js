@@ -14,7 +14,7 @@ export default function SubscriptionCard({ subscription, onDelete, onEdit }) {
           Edit
         </button>
         <button
-          onClick={() => onDelete(subscription.id)}
+          onClick={() => onDelete(subscription._id)} // Use _id from the database
           className="bg-red-500 text-white px-3 py-1 rounded"
         >
           Delete

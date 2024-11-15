@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState, useEffect } from "react";
 import SubscriptionCard from "./components/SubscriptionCard";
@@ -7,27 +7,71 @@ import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
   const [subscriptions, setSubscriptions] = useState([]);
-  const [editingSubscription, setEditingSubscription] = useState(null);
+  const [loading, setLoading] = useState(true); // Add a loading state
   const router = useRouter();
 
   useEffect(() => {
-    const storedSubscriptions =
-      JSON.parse(localStorage.getItem("subscriptions")) || [];
-    setSubscriptions(storedSubscriptions);
-  }, []);
+    const fetchSubscriptions = async () => {
+      const token = localStorage.getItem("token"); // Retrieve the token
 
-  const handleDelete = (id) => {
-    const updatedSubscriptions = subscriptions.filter(
-      (sub) => sub.id !== id
-    );
-    setSubscriptions(updatedSubscriptions);
-    localStorage.setItem("subscriptions", JSON.stringify(updatedSubscriptions));
+      if (!token) {
+        // Redirect to login if token doesn't exist
+        router.push("/auth/login");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/subscriptions", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setSubscriptions(data.data); // Set fetched subscriptions
+          setLoading(false);
+        } else if (res.status === 401) {
+          // Handle unauthorized access
+          router.push("/auth/login");
+        }
+      } catch (error) {
+        console.error("Failed to fetch subscriptions:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchSubscriptions();
+  }, [router]);
+
+  const handleDelete = async (id) => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch(`/api/subscriptions/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        setSubscriptions((prev) => prev.filter((sub) => sub._id !== id)); // Filter out deleted subscription
+      } else {
+        console.error("Failed to delete subscription");
+      }
+    } catch (error) {
+      console.error("Error deleting subscription:", error);
+    }
   };
 
   const handleEdit = (subscription) => {
-    router.push(`/add-subscription?edit=true&id=${subscription.id}`);
+    router.push(`/add-subscription?id=${subscription._id}`); // Redirect to the edit page
   };
-  
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -42,7 +86,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
         {subscriptions.map((sub) => (
           <SubscriptionCard
-            key={sub.id}
+            key={sub._id}
             subscription={sub}
             onDelete={handleDelete}
             onEdit={handleEdit}

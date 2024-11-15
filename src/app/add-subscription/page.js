@@ -5,49 +5,76 @@ import { useSearchParams, useRouter } from "next/navigation";
 
 export default function AddSubscription() {
   const [formData, setFormData] = useState({ name: "", price: "", dueDate: "" });
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const isEditing = searchParams.get("edit") === "true";
-  const editingId = parseFloat(searchParams.get("id"));
+  const editingId = searchParams.get("id");
 
   useEffect(() => {
     if (isEditing) {
-      const subscriptions =
-        JSON.parse(localStorage.getItem("subscriptions")) || [];
-      const editingSubscription = subscriptions.find(
-        (sub) => sub.id === editingId
-      );
-      if (editingSubscription) {
-        setFormData(editingSubscription);
-      }
+      // Fetch the subscription data for editing
+      const fetchSubscription = async () => {
+        const token = localStorage.getItem("token");
+        try {
+          const res = await fetch(`/api/subscriptions/${editingId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (res.ok) {
+            const { data } = await res.json();
+            setFormData(data);
+          } else {
+            setError("Failed to load subscription for editing");
+          }
+        } catch (err) {
+          console.error(err);
+          setError("An error occurred while loading subscription data");
+        }
+      };
+      fetchSubscription();
     }
   }, [isEditing, editingId]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const subscriptions =
-      JSON.parse(localStorage.getItem("subscriptions")) || [];
-    let updatedSubscriptions;
-
-    if (isEditing) {
-      // Replace the subscription with the edited one
-      updatedSubscriptions = subscriptions.map((sub) =>
-        sub.id === editingId ? { ...sub, ...formData } : sub
-      );
-    } else {
-      // Add a new subscription
-      const newSubscription = {
-        id: Math.random(),
-        ...formData,
-        price: parseFloat(formData.price),
-      };
-      updatedSubscriptions = [...subscriptions, newSubscription];
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/auth/login");
+      return;
     }
 
-    localStorage.setItem("subscriptions", JSON.stringify(updatedSubscriptions));
-    router.push("/dashboard");
+    try {
+      const res = await fetch(
+        isEditing ? `/api/subscriptions/${editingId}` : "/api/subscriptions",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      if (res.ok) {
+        setSuccess(isEditing ? "Subscription updated successfully!" : "Subscription added successfully!");
+        setError(null);
+        router.push("/dashboard");
+      } else {
+        const { message } = await res.json();
+        setError(message || "Failed to save subscription");
+        setSuccess(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("An error occurred while saving the subscription");
+      setSuccess(null);
+    }
   };
 
   return (
@@ -56,6 +83,8 @@ export default function AddSubscription() {
         <h2 className="text-2xl font-bold mb-4">
           {isEditing ? "Edit Subscription" : "Add Subscription"}
         </h2>
+        {error && <p className="text-red-500 mb-4">{error}</p>}
+        {success && <p className="text-green-500 mb-4">{success}</p>}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700">Name</label>
