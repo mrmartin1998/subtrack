@@ -1,6 +1,23 @@
+"use client";
+
 import Link from "next/link";
+import { useAuth } from "../../context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
+  const { token, isHydrated, logout } = useAuth(); // Get hydration state
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/auth/login");
+  };
+
+  // Prevent rendering until hydration is complete
+  if (!isHydrated) {
+    return null;
+  }
+
   return (
     <nav className="bg-gray-800 text-white p-4">
       <div className="container mx-auto flex justify-between">
@@ -17,6 +34,18 @@ export default function Navbar() {
           <Link href="/profile" className="hover:underline">
             Profile
           </Link>
+          {token ? (
+            <button
+              onClick={handleLogout}
+              className="hover:underline bg-red-500 px-2 py-1 rounded"
+            >
+              Logout
+            </button>
+          ) : (
+            <Link href="/auth/login" className="hover:underline">
+              Login
+            </Link>
+          )}
         </div>
       </div>
     </nav>

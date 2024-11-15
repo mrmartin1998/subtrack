@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function Login() {
   const [error, setError] = useState(null);
   const router = useRouter();
+  const { login } = useAuth(); // Use the login function from context
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -15,14 +17,14 @@ export default function Login() {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }), // Send as JSON body, not query parameters
+      body: JSON.stringify({ email, password }),
     });
 
     if (res.ok) {
       const { token } = await res.json();
-      localStorage.setItem("token", token); // Save the token in localStorage
+      login(token); // Use context to update token state
       setError(null);
-      router.push("/dashboard"); // Redirect to the dashboard
+      router.push("/dashboard");
     } else {
       const { message } = await res.json();
       setError(message || "Login failed");
